@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/xiaomiquan"
+        android:title="加入小密圈获取最新版"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/kecheng"
+        android:title="《Android安全/逆向进阶课程》"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/info"
+        android:title="+Vx:296488320"
+        app:showAsAction="ifRoom" />
+</menu>

@@ -1,0 +1,46 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            name "aliyunmaven"
+            url "https://maven.aliyun.com/repository/public"
+        }
+        maven {
+            name "aliyunGoogle"
+            url "https://maven.aliyun.com/repository/google"
+        }
+    }
+    dependencies {
+        classpath 'com.github.megatronking.stringfog:gradle-plugin:4.0.1'
+        classpath 'com.github.megatronking.stringfog:xor:4.0.1'
+    }
+}
+plugins {
+    id 'com.android.application' version '7.4.2' apply false
+    id 'com.android.library' version '7.4.2' apply false
+}
+allprojects {
+    repositories {
+        maven {
+            name "aliyunmaven"
+            url "https://maven.aliyun.com/repository/public"
+        }
+        maven {
+            name "aliyunGoogle"
+            url "https://maven.aliyun.com/repository/google"
+        }
+        maven { url 'https://www.jitpack.io' }
+
+        google()
+        mavenCentral()
+
+    }
+}
+
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}

@@ -1,0 +1,25 @@
+pluginManagement {
+    repositories {
+        maven {
+            name "aliyunmaven"
+            url "https://maven.aliyun.com/repository/public"
+        }
+        maven {
+            name "aliyunGoogle"
+            url "https://maven.aliyun.com/repository/google"
+        }
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+}
+dependencyResolutionManagement {
+    repositories {
+        maven { url "https://jitpack.io" }
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = "XposeJniTrace"
+include ':app'
+include ':nativeLib'

@@ -1,0 +1,127 @@
+apply plugin: 'com.android.application'
+apply plugin: 'stringfog'
+
+import com.github.megatronking.stringfog.plugin.kg.RandomKeyGenerator
+import groovy.json.JsonSlurper
+
+//import com.github.megatronking.stringfog.plugin.kg.HardCodeKeyGenerator
+
+stringfog {
+    enable true
+    implementation 'com.github.megatronking.stringfog.xor.StringFogImpl'
+    //只混淆zhenxi下的
+    fogPackages = ['com.zhenxi']
+    kg new RandomKeyGenerator()
+    //kg new HardCodeKeyGenerator("Zhenxi233")
+    mode bytes
+}
+
+def project_name = "\"FunJni\""
+
+android {
+    compileSdkVersion 28
+    defaultConfig {
+        applicationId "com.zhenxi.FunJni"
+        minSdkVersion 21
+        targetSdkVersion 21 //support old xposed
+        versionCode 1
+        versionName "1.0"
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a'
+        }
+
+        applicationVariants.all {
+            variant ->
+                variant.outputs.all {
+                    if (buildType.name == 'release') {
+                        def createTime = new Date().format("YYYY-MM-dd", TimeZone.getTimeZone("GMT+08:00"))
+                        outputFileName "FunJni_"+"v" + defaultConfig.versionName + "_" + createTime + "_" + buildType.name + ".apk"
+                    }
+                }
+
+        }
+    }
+    //In order to compile Java 9+ source, please set compileSdkVersion to 30 or above
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+        }
+    }
+    buildTypes {
+        debug {
+            minifyEnabled false
+            shrinkResources false
+            zipAlignEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            buildConfigField "boolean", "is_printf_log", "true"
+            buildConfigField "String", "project_name", project_name
+            externalNativeBuild {
+                cmake {
+                    arguments "-DZHENXI_BUILD_TYPE=DEBUG"
+                }
+            }
+        }
+        release {
+            buildConfigField "String", "project_name", project_name
+            buildConfigField "boolean", "is_printf_log", "false"
+            shrinkResources true
+            minifyEnabled true
+            zipAlignEnabled true
+            proguardFiles 'proguard-rules.pro'
+            externalNativeBuild {
+                cmake {
+                    arguments "-DZHENXI_BUILD_TYPE=RELEASE"
+                }
+            }
+        }
+    }
+
+    sourceSets{
+        main{
+            jniLibs.srcDirs = ['src/main/jniLibs']
+        }
+    }
+    signingConfigs {
+        debug {
+            storeFile file("jnitraceKey.jks")
+            storePassword 'jnitrace'
+            keyAlias 'jnitrace'
+            keyPassword 'jnitrace'
+        }
+        release {
+            storeFile file("jnitraceKey.jks")
+            storePassword 'jnitrace'
+            keyAlias 'jnitrace'
+            keyPassword 'jnitrace'
+        }
+    }
+    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+    //NDK R23 super C++20 min version
+    ndkVersion '25.1.8937393'
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.1.0'
+
+    implementation 'androidx.recyclerview:recyclerview:1.2.1'
+    implementation 'com.github.megatronking.stringfog:xor:4.0.1'
+    implementation 'com.google.android.material:material:1.1.0'
+
+    //为了兼容老版本Xposed
+    //Gradle4.6开始provided关键字被弃用。
+    //Gradle5.0中provided关键字已经被删除。我们的项目不需要Java层进行hook
+    //只用到了xposed的注入功能,所以导入hook api的意义不是很大。
+    //provided 'de.robv.android.xposed:api:82'
+    compileOnly 'de.robv.android.xposed:api:82'
+
+    //https://github.com/LSPosed/AndroidHiddenApiBypass
+    implementation 'org.lsposed.hiddenapibypass:hiddenapibypass:4.3'
+}
