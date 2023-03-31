@@ -4,17 +4,19 @@
     android:layout_height="wrap_content">
 
     <TextView
-        android:text="请输入需要监听的SO名字,若要监听多个用|分割,如果需要监听全部SOJNI调用输入:ALL"
+        android:text="请输入需要监听被HookApk的SO关键字,若要监听多个用|分割,如果需要监听全部JNI调用输入:ALL
+        \n保存的文件在/data/data/包名目录下。"
         android:layout_width="match_parent"
         android:layout_height="64dp"
         android:scaleType="center"
-        android:background="#FFFFBB33"
+        android:textColor="#fff"
+        android:background="#1baaf2"
         android:contentDescription="@string/app_name"
         />
 
     <EditText
         android:id="@+id/ed_input"
-        android:inputType="textPassword"
+        android:inputType="text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
@@ -22,7 +24,7 @@
         android:layout_marginRight="4dp"
         android:layout_marginBottom="16dp"
         android:fontFamily="sans-serif"
-        android:hint="如:AAAlib.so|BBBlib.so|CCClib.so 或者ALL(大写)"/>
+        android:hint="AAAlib.so|BBBlib.so|... 或者ALL(大写)"/>
 
 </LinearLayout>
 

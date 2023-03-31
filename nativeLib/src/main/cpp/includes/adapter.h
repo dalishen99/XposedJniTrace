@@ -8,7 +8,7 @@
 #ifndef ZHENXIRUNTIME_ADAPTER_H
 #define ZHENXIRUNTIME_ADAPTER_H
 
-extern JavaVM *vm;
+extern JavaVM *mVm;
 extern JNIEnv *mEnv;
 
 JNIEnv *getRunTimeEnv();

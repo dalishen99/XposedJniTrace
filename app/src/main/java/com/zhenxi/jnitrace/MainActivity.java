@@ -165,7 +165,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 for (AppBean bean : dataList) {
                     if (bean.appName.equals(key)) {
-                        mMainListViewAdapter.saveConfig(bean);
+                        mMainListViewAdapter.initConfig(bean);
                         //CLog.e("history " + bean.toString());
                         return;
                     }
@@ -175,7 +175,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onLinkClick(AppBean appBean) {
-                mMainListViewAdapter.saveConfig(appBean);
+                mMainListViewAdapter.initConfig(appBean);
                 searchFragment.historyDb.insertHistory(appBean.appName);
             }
 

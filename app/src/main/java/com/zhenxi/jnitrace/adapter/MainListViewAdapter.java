@@ -1,7 +1,6 @@
 package com.zhenxi.jnitrace.adapter;
 
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.pm.PackageInfo;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,6 +20,7 @@ import com.zhenxi.jnitrace.bean.AppBean;
 import com.zhenxi.jnitrace.utils.CLog;
 import com.zhenxi.jnitrace.utils.Constants;
 import com.zhenxi.jnitrace.utils.FileUtils;
+import com.zhenxi.jnitrace.utils.GsonUtils;
 import com.zhenxi.jnitrace.utils.RootUtils;
 import com.zhenxi.jnitrace.utils.SpUtil;
 import com.zhenxi.jnitrace.utils.ToastUtils;
@@ -31,6 +31,8 @@ import java.util.Arrays;
 
 
 import static com.zhenxi.jnitrace.config.ConfigKey.CONFIG_JSON;
+import static com.zhenxi.jnitrace.config.ConfigKey.FILTER_LIST;
+import static com.zhenxi.jnitrace.config.ConfigKey.IS_LISTEN_TO_ALL;
 import static com.zhenxi.jnitrace.config.ConfigKey.IS_SERIALIZATION;
 import static com.zhenxi.jnitrace.config.ConfigKey.MOUDLE_SO_PATH;
 import static com.zhenxi.jnitrace.config.ConfigKey.PACKAGE_NAME;
@@ -53,6 +55,10 @@ public class MainListViewAdapter extends BaseAdapter {
     private final Context mContext;
     private final CheckBox isSerialization;
 
+
+
+
+    private AppBean mAppBean = null;
 
     public MainListViewAdapter(Context context,
                                ArrayList<AppBean> data,
@@ -100,39 +106,48 @@ public class MainListViewAdapter extends BaseAdapter {
         holder.tv_appName.setText(appBean.appName);
         holder.tv_packageName.setText(appBean.packageName);
         holder.All.setOnClickListener(v ->
-                saveConfig(appBean)
+                initConfig(appBean)
         );
         return convertView;
     }
-
-    private  ArrayList<String>  mSoFiltersList = null;
 
 
     /**
      * 弹出对话框收集用户需要采集的So调用信息
      */
-    private void showDialogForList(Context context){
+    private void showDialogForList(Context context) {
         View view = LayoutInflater.from(mContext).inflate(R.layout.dialog_input, null);
-        EditText input = (EditText) view.findViewById(R.id.ed_input);
+        EditText input = view.findViewById(R.id.ed_input);
         new AlertDialog.Builder(context)
                 .setView(view)
                 .setPositiveButton("确定", (dialog, which) -> {
                     String inputStr = input.getText().toString();
-                    if(inputStr.length() == 0){
-                        ToastUtils.showToast(context,"输入错误,未找到需要需要监听的SO信息");
+                    if (inputStr.length() == 0) {
+                        ToastUtils.showToast(context, "输入错误,未找到需要需要监听的SO信息");
                         return;
                     }
-                    if(inputStr.equals("ALL")) {
-                        //集合个数为0并且不等于NULL,则认为监听ALL
-                        mSoFiltersList = new ArrayList<>();
-                    }else {
-                        String[] split = inputStr.split("\\|");
-                        CLog.e("input str msg -> "+Arrays.toString(split));
-                        if(mSoFiltersList == null) {
-                            mSoFiltersList = new ArrayList<>();
+
+                    ArrayList<String> filtersList = new ArrayList<>();
+                    JSONObject jsonObject = new JSONObject();
+                    try {
+                        if (inputStr.equals("ALL")) {
+                            jsonObject.put(IS_LISTEN_TO_ALL, true);
+                        } else {
+                            jsonObject.put(IS_LISTEN_TO_ALL, false);
+                            String[] split = inputStr.split("\\|");
+                            CLog.e("input str msg -> " + Arrays.toString(split));
+                            filtersList.addAll(Arrays.asList(split));
+                            if (!isSerialization.isChecked()) {
+                                String listJsonStr = GsonUtils.obj2str(filtersList);
+                                CLog.e("filter list json -> " + listJsonStr);
+                                jsonObject.put(FILTER_LIST, listJsonStr);
+                            }
                         }
-                        mSoFiltersList.addAll(Arrays.asList(split));
+                    } catch (Throwable e) {
+                        CLog.e("put filter list error " + e);
                     }
+                    //保存数据
+                    saveConfig(mAppBean,jsonObject);
                     // 点击了确认按钮
                     dialog.dismiss();
                 })
@@ -147,13 +162,19 @@ public class MainListViewAdapter extends BaseAdapter {
     /**
      * 保存配置信息
      */
-    public void saveConfig(AppBean bean) {
-        if(!isSerialization.isChecked()){
-            //没有选中内存漫游,则执行正常逻辑
+    public void initConfig(AppBean bean) {
+        mAppBean = bean;
+        if (!isSerialization.isChecked()) {
+            //没有选中内存漫游,则执行正常逻辑,在弹窗里面进行保存
             showDialogForList(mContext);
+            return;
         }
-        //init config json
-        JSONObject jsonObject = new JSONObject();
+        saveConfig(bean,null);
+    }
+    private void saveConfig(AppBean bean,JSONObject jsonObject){
+        if(jsonObject == null) {
+            jsonObject = new JSONObject();
+        }
         try {
             jsonObject.put(PACKAGE_NAME, bean.packageName);
             try {
@@ -164,23 +185,17 @@ public class MainListViewAdapter extends BaseAdapter {
                 jsonObject.put(MOUDLE_SO_PATH, null);
             }
             //保存时间,增加时效性
-            jsonObject.put(SAVE_TIME, System.currentTimeMillis() + "");
-            String isMemSerialization = isSerialization.isChecked() + "";
-            //CLog.e("isMemSerialization "+isMemSerialization);
-            jsonObject.put(IS_SERIALIZATION, isMemSerialization);
-            if(!isSerialization.isChecked()){
-                if(isAllListening){
-
-                }
-            }
+            jsonObject.put(SAVE_TIME, System.currentTimeMillis());
+            jsonObject.put(IS_SERIALIZATION, isSerialization.isChecked());
         } catch (Throwable e) {
-            CLog.e("save config to json error "+e);
+            CLog.e("save config to json error " + e);
         }
-
-        CLog.e("save config file info -> "+jsonObject);
-
+        saveConfigForLocation(bean, jsonObject);
+    }
+    private void saveConfigForLocation(AppBean bean, JSONObject jsonObject) {
         SpUtil.putString(mContext, CONFIG_JSON, jsonObject.toString());
-        saveConfig(bean.packageName, jsonObject);
+        initConfig(bean.packageName, jsonObject);
+        CLog.e("save config file info -> " + jsonObject);
         ToastUtils.showToast(mContext,
                 "保存成功文件路径为\n" +
                         "data/data/" + bean.packageName);
@@ -191,20 +206,20 @@ public class MainListViewAdapter extends BaseAdapter {
      * shared = new XSharedPreferences(BuildConfig.APPLICATION_ID, "config"); 导致失效
      * 通过root强行将数据保存一份到目标apk 私有目录
      */
-    private void saveConfig(String packageName, JSONObject jsonObject) {
+    @SuppressWarnings("All")
+    private void initConfig(String packageName, JSONObject jsonObject) {
         try {
-            File filesDir = mContext.getFilesDir();
-            FileUtils.makeSureDirExist(filesDir);
-            File config = new File(filesDir.getPath() + "/" + BuildConfig.project_name + "Config");
-            CLog.e("temp config file path " + config.getPath());
-            File temp = new File("/data/data/" + packageName);
 
+            File config = new File( "/data/data/"
+                    + packageName+ "/" + BuildConfig.project_name + "Config");
+            CLog.e("temp config file path " + config.getPath());
             if (config.exists()) {
                 boolean delete = config.delete();
                 if (!delete) {
                     CLog.e("delete org config file error");
                 }
             }
+            File temp = new File("/data/data/" + packageName);
             boolean newFile = config.createNewFile();
             if (!newFile) {
                 CLog.e("create config file error " + config.getPath());

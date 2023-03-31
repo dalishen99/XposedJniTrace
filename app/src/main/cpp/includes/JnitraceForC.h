@@ -16,10 +16,18 @@ class Jnitrace {
          * start jni trace
          *
          * @param env  jniEnv
-         * @param os using the list to save the entire collection, the jnitrace only handles the so name inside the list
-         * @param isSave  Whether to save the file, save the file is the incoming path, otherwise pass null
+         * @param hookAll  lister all so jni
+         * @param forbid_list  not lister so list
+         * @param filter_list  lister so list
+         * @param os using the list to save the entire collection,
+         *           the jnitrace only handles the so name inside the list 。
+         *           No file save occurs if os == nullptr
          */
-        static void startjnitrace(JNIEnv *env, const std::list<string> &filter_list, std::ofstream * os);
+        static void startjnitrace(JNIEnv *env,
+                                  bool hookAll,
+                                  const std::list<string> &forbid_list,
+                                  const std::list<string> &filter_list,
+                                  std::ofstream * os);
 
         /**
          * stop jni trace

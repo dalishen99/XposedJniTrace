@@ -2,12 +2,11 @@ apply plugin: 'com.android.application'
 apply plugin: 'stringfog'
 
 import com.github.megatronking.stringfog.plugin.kg.RandomKeyGenerator
-import groovy.json.JsonSlurper
-
 //import com.github.megatronking.stringfog.plugin.kg.HardCodeKeyGenerator
 
 stringfog {
-    enable true
+    enable false
+    //enable true
     implementation 'com.github.megatronking.stringfog.xor.StringFogImpl'
     //只混淆zhenxi下的
     fogPackages = ['com.zhenxi']
@@ -16,7 +15,7 @@ stringfog {
     mode bytes
 }
 
-def project_name = "\"FunJni\""
+def project_name = "FunJni"
 
 android {
     compileSdkVersion 28
@@ -29,7 +28,11 @@ android {
         ndk {
             abiFilters 'armeabi-v7a', 'arm64-v8a'
         }
-
+        externalNativeBuild {
+            cmake {
+                cppFlags "-DPROJECT_SO_NAME="+String.valueOf(project_name)
+            }
+        }
         applicationVariants.all {
             variant ->
                 variant.outputs.all {
@@ -59,7 +62,7 @@ android {
             zipAlignEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             buildConfigField "boolean", "is_printf_log", "true"
-            buildConfigField "String", "project_name", project_name
+            buildConfigField "String", "project_name", "\"${project_name}\""
             externalNativeBuild {
                 cmake {
                     arguments "-DZHENXI_BUILD_TYPE=DEBUG"
@@ -67,7 +70,7 @@ android {
             }
         }
         release {
-            buildConfigField "String", "project_name", project_name
+            buildConfigField "String", "project_name", "\"${project_name}\""
             buildConfigField "boolean", "is_printf_log", "false"
             shrinkResources true
             minifyEnabled true

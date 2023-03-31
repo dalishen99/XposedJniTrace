@@ -52,17 +52,37 @@ namespace ZhenxiRunTime::JniTrace {
     dladdr((void *) __builtin_return_address(0), &info); \
 
 # define IS_MATCH \
-    for (const auto &soname: filterSoList) { \
-        if (my_strstr(info.dli_fname, soname.c_str())) { \
-            match_so_name = soname;     \
+        if(isLister(info.dli_fname)){ \
+            { \
 
 
+
+    static bool isHookAll = false;
     static std::ofstream *jnitraceOs;
     static std::list<string> filterSoList;
+    static std::list<string> forbidSoList;
     static bool isSave = false;
     static string match_so_name = {};
     static std::mutex supernode_ids_mux_;
 
+    __always_inline
+    static inline bool isLister(const char* name) {
+        //如果是hook all,我们则只需要处理排除的so
+        if(isHookAll) {
+            return !std::any_of(forbidSoList.begin(),
+                                forbidSoList.end(),
+                                [name](const std::string& forbid) {
+                return my_strstr(forbid.c_str(), name);
+            });
+        } else {
+            //处理我们需要监听的so
+            return std::any_of(filterSoList.begin(),
+                               filterSoList.end(),
+                               [name](const std::string& filter) {
+                return my_strstr(filter.c_str(), name);
+            });
+        }
+    }
 
     static void write(const std::string &msg) {
         //写入方法加锁,防止多进程导致问题
@@ -1170,8 +1190,15 @@ void Jnitrace::init(JNIEnv *env) {
 }
 
 
-void Jnitrace::startjnitrace(JNIEnv *env, const std::list<string> &filter_list, std::ofstream *os) {
-    filterSoList = filter_list;
+void Jnitrace::startjnitrace(JNIEnv *env ,
+                             bool hookAll,
+                             const std::list<string> &forbid_list,
+                             const std::list<string> &filter_list,
+                             std::ofstream *os) {
+    isHookAll = hookAll;
+    //copy orig list
+    forbidSoList = std::list<string>(forbid_list);
+    filterSoList = std::list<string>(filter_list);
     if (os != nullptr) {
         isSave = true;
         jnitraceOs = os;

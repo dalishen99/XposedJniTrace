@@ -28,4 +28,15 @@ public class ConfigKey {
      */
     public static final String IS_SERIALIZATION="IS_SERIALIZATION";
 
+    /**
+     * 是否监听全部的SO文件
+     */
+    public static final String IS_LISTEN_TO_ALL="IS_LISTEN_TO_ALL";
+
+
+    /**
+     * 过滤的集合
+     */
+    public static final String FILTER_LIST="FILTER_LIST";
+
 }

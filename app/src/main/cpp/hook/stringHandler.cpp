@@ -61,9 +61,8 @@ using namespace StringUtils;
     dladdr((void *) __builtin_return_address(0), &info); \
 
 # define IS_MATCH \
-    for (const auto &soname: strHandlerFilterNameList) { \
-        if (my_strstr(info.dli_fname, soname.c_str())) { \
-            match_so_name = soname;     \
+        if(isLister(info.dli_fname)){ \
+            { \
 
 # define IS_NULL(value) \
     value == nullptr?"":value\
@@ -71,10 +70,34 @@ using namespace StringUtils;
 namespace ZhenxiRunTime::stringHandlerHook {
 
     static std::ofstream *hookStrHandlerOs;
-    static std::list<string> strHandlerFilterNameList;
+    static std::list<string> filterSoList;
+    static std::list<string> forbidSoList;
+    static bool isHookAll = false;
+
     static bool isSave = false;
     static string match_so_name = {};
     static std::mutex supernode_ids_mux_;
+
+
+    __always_inline
+    static inline bool isLister(const char* name) {
+        //如果是hook all,我们则只需要处理排除的so
+        if(isHookAll) {
+            return !std::any_of(forbidSoList.begin(),
+                                forbidSoList.end(),
+                                [name](const std::string& forbid) {
+                                    return my_strstr(forbid.c_str(), name);
+                                });
+        } else {
+            //处理我们需要监听的so
+            return std::any_of(filterSoList.begin(),
+                               filterSoList.end(),
+                               [name](const std::string& filter) {
+                                   return my_strstr(filter.c_str(), name);
+                               });
+        }
+    }
+
 
     bool getpData(char temp[],const void *p, size_t size) {
         memset(temp,0,strlen(temp));
@@ -106,7 +129,6 @@ namespace ZhenxiRunTime::stringHandlerHook {
 
     //void __init(const value_type* __s, size_type __sz);
     HOOK_DEF(void*, string__init_1, void *thiz, char const *__s, size_t __sz) {
-        LOGI("stringHanderUtilsCallBack string__init_1 AAAAAAAAAAAAAAAAAAAAAAAA ")
         DL_INFO
         IS_MATCH
                 write(*((string *) thiz));
@@ -118,8 +140,6 @@ namespace ZhenxiRunTime::stringHandlerHook {
     //void __init(const value_type* __s, size_type __sz, size_type __reserve);
     HOOK_DEF(void*, string__init_2, void *thiz, char const *__s, size_t __sz,
              size_t __reserve) {
-        LOGI("stringHanderUtilsCallBack string__init_2 AAAAAAAAAAAAAAAAAAAAAAAA ")
-
         DL_INFO
         IS_MATCH
                 write(*((string *) thiz));
@@ -129,8 +149,6 @@ namespace ZhenxiRunTime::stringHandlerHook {
     }
     //void __init(size_type __n, value_type __c);
     HOOK_DEF(void*, string__init_3, void *thiz, size_t __n, char __c) {
-        LOGI("stringHanderUtilsCallBack string__init_3 AAAAAAAAAAAAAAAAAAAAAAAA ")
-
         DL_INFO
         IS_MATCH
                 write(*((string *) thiz));
@@ -520,8 +538,14 @@ void stringHandler::init() {
     LOG(ERROR) << ">>>>>>>>> string handler init sucess !  ";
 }
 
-void stringHandler::hookStrHandler(const std::list<string> &filter_list, std::ofstream *os) {
-    strHandlerFilterNameList = filter_list;
+void stringHandler::hookStrHandler(bool hookAll,
+                                   const std::list<string> &forbid_list,
+                                   const std::list<string> &filter_list,
+                                   std::ofstream *os) {
+    isHookAll = hookAll;
+    filterSoList = std::list<string>(filter_list);
+    forbidSoList = std::list<string>(forbid_list);
+
     if (os != nullptr) {
         isSave = true;
         hookStrHandlerOs = os;
@@ -533,7 +557,7 @@ void stringHandler::hookStrHandler(const std::list<string> &filter_list, std::of
 
 [[maybe_unused]]
 void stringHandler::stopjnitrace() {
-    strHandlerFilterNameList.clear();
+    filterSoList.clear();
     if (hookStrHandlerOs != nullptr) {
         if (hookStrHandlerOs->is_open()) {
             hookStrHandlerOs->close();

@@ -11,7 +11,10 @@
 class stringHandler {
 public:
 
-    static void hookStrHandler(const std::list<string> &filter_list, std::ofstream *os);
+    static void hookStrHandler(bool hookAll,
+                               const std::list<string> &forbid_list,
+                               const std::list<string> &filter_list,
+                               std::ofstream *os);
 
     static void stopjnitrace();
 

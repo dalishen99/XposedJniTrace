@@ -5,7 +5,7 @@
 
 #include "adapter.h"
 
-JavaVM *vm;
+JavaVM *mVm;
 JNIEnv *mEnv;
 
 
@@ -37,7 +37,7 @@ JNIEnv *getRunTimeEnv() {
     //一个进程一个env
     //JNIEnv *env;
     if (mEnv == nullptr) {
-        vm->GetEnv(reinterpret_cast<void **>(&mEnv), JNI_VERSION_1_6);
+        mVm->GetEnv(reinterpret_cast<void **>(&mEnv), JNI_VERSION_1_6);
     }
     return mEnv;
 }
@@ -45,12 +45,12 @@ JNIEnv *getRunTimeEnv() {
 JNIEnv *ensureEnvCreated() {
     JNIEnv *env = getRunTimeEnv();
     if (env == nullptr) {
-        vm->AttachCurrentThread(&env, nullptr);
+        mVm->AttachCurrentThread(&env, nullptr);
     }
     return env;
 }
 
 
 void DetachCurrentThread() {
-    vm->DetachCurrentThread();
+    mVm->DetachCurrentThread();
 }
