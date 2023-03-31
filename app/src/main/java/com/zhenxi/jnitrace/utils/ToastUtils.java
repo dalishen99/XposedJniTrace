@@ -16,14 +16,20 @@ public class ToastUtils {
             if (context == null) {
                 return;
             }
-            if (toast == null) {
-                toast = Toast.makeText(context, msg, Toast.LENGTH_LONG);
-            }else {
-                toast.setText(msg);
-            }
-            toast.show();
+            ThreadUtils.runOnMainThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (toast == null) {
+                        toast = Toast.makeText(context, msg, Toast.LENGTH_LONG);
+                    }else {
+                        toast.setText(msg);
+                    }
+                    toast.show();
+                }
+            });
+
         } catch (Throwable e) {
-            CLog.e("showToast error " + e);
+            CLog.e("showToast error " + e,e);
         }
     }
 }

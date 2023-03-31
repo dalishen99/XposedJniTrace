@@ -73,7 +73,7 @@ public class LHook implements IXposedHookLoadPackage, IXposedHookZygoteInit {
      */
     private static boolean isListenAll = false;
 
-    private static ArrayList<?> mFilterList = null;
+    private static final ArrayList<String> mFilterList = new ArrayList<>();
 
     private static final String DEF_VALUE = "DEF";
 
@@ -103,7 +103,9 @@ public class LHook implements IXposedHookLoadPackage, IXposedHookZygoteInit {
                 String list = json.optString(FILTER_LIST, DEF_VALUE);
                 ArrayList<?> arrayList = GsonUtils.str2obj(list, ArrayList.class);
                 if (arrayList != null) {
-                    mFilterList = arrayList;
+                    for (Object obj :arrayList) {
+                        mFilterList.add((String) obj);
+                    }
                     //CLog.e("filter so list  "+mFilterList);
                 } else {
                     CLog.e("filter so list  == null !!!!!!!");
@@ -158,8 +160,8 @@ public class LHook implements IXposedHookLoadPackage, IXposedHookZygoteInit {
 
     private boolean isMatch(String packageName) {
         //包名匹配&&10分钟的有效期
-        return packageName.equals(mTagPackageName) &&
-                (System.currentTimeMillis() - mSaveTime) < (1000 * 60 * 10);
+        return packageName.equals(mTagPackageName);
+                //&&(System.currentTimeMillis() - mSaveTime) < (1000 * 60 * 10);
     }
 
     private void intoMySo(Context context) {
@@ -280,18 +282,15 @@ public class LHook implements IXposedHookLoadPackage, IXposedHookZygoteInit {
                 //处理JNI监听
                 intoMySo(context);
                 File file = new File("/data/data/"
-                        + mTagPackageName + "/XposedJnitrace(" + mProcessName + ")_"
-                        + (isListenAll ? "ALL" : mFilterList.toString()) + ".txt");
+                        + mTagPackageName + "/XposedJnitrace(" + mProcessName + ")"
+                        + (isListenAll ? "[ALL]" : mFilterList.toString()) + ".txt");
                 if (file.exists()) {
                     file.delete();
                 }
                 file.createNewFile();
                 CLog.i(">>>>>>>>>>> start hook jni " + file.getPath());
-                if (isListenAll) {
-                    startHookJni(true, null, file.getPath());
-                } else {
-                    startHookJni(false, (ArrayList<String>) mFilterList, file.getPath());
-                }
+                //start hook native
+                startHookJni(isListenAll,mFilterList, file.getPath());
             } catch (Throwable e) {
                 CLog.e("into&hook jni error " + e);
             }

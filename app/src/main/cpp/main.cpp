@@ -24,19 +24,20 @@
 
 void startHookJni(JNIEnv *env, jclass clazz,
         jboolean isListenerAll , jobject jmap, jstring filepath) {
+
+    LOG(INFO) << "<<<<<<<<< startHookJni start init >>>>>>>>>>  " ;
+
     const auto &filter_list = parse::jlist2clist(env, jmap);
     auto listenerAll = parse::jboolean2bool(isListenerAll);
 
-    string path;
     auto prettyMethodSym =
             reinterpret_cast<std::string(*)(void *, bool)>
                     (fake_dlsym(fake_dlopen(getlibArtPath(), RTLD_NOW),
                                 "_ZN3art9ArtMethod12PrettyMethodEb"));
     //排除我们自己的SO,防止重复调用导致栈溢出。
     const std::list<string> forbid_list {CORE_SO_NAME};
-
     if (filepath != nullptr) {
-        path = parse::jstring2str(env, filepath);
+        auto path = parse::jstring2str(env, filepath);
         auto *saveOs = new ofstream();
         saveOs->open(path, ios::app);
         if (!saveOs->is_open()) {
@@ -48,18 +49,20 @@ void startHookJni(JNIEnv *env, jclass clazz,
         //hook jni
         Jnitrace::startjnitrace(env,listenerAll, forbid_list,filter_list, saveOs);
         //hook libc string handle function
-        stringHandler::hookStrHandler(listenerAll, forbid_list,filter_list, saveOs);
+        //stringHandler::hookStrHandler(listenerAll, forbid_list,filter_list, saveOs);
+
         //hook so linker
-        linkerHandler::linkerCallBack(saveOs);
+        //linkerHandler::linkerCallBack(saveOs);
         //hook jni register native
-        invokePrintf::HookJNIRegisterNative(env,saveOs,prettyMethodSym);
+        //invokePrintf::HookJNIRegisterNative(env,saveOs,prettyMethodSym);
         //hook all java invoke
         //invokePrintf::HookJNIInvoke(env,saveOs,prettyMethodSym);
     } else {
-        Jnitrace::startjnitrace(env, listenerAll, forbid_list,filter_list, nullptr);
-        stringHandler::hookStrHandler(listenerAll, forbid_list,filter_list, nullptr);
-        linkerHandler::linkerCallBack(nullptr);
-        invokePrintf::HookJNIRegisterNative(env, nullptr,prettyMethodSym);
+        //现阶段一定会保存到文件里面
+        //Jnitrace::startjnitrace(env, listenerAll, forbid_list,filter_list, nullptr);
+        //stringHandler::hookStrHandler(listenerAll, forbid_list,filter_list, nullptr);
+        //linkerHandler::linkerCallBack(nullptr);
+        //invokePrintf::HookJNIRegisterNative(env, nullptr,prettyMethodSym);
         //invokePrintf::HookJNIInvoke(env,nullptr,prettyMethodSym);
     }
     LOG(INFO) << ">>>>>>>>>>>>> jni hook finish  !  " ;
@@ -71,7 +74,7 @@ static JNINativeMethod gMethods[] = {
 
 jint JNICALL
 JNI_OnLoad(JavaVM *vm, void *reserved) {
-    LOG(ERROR) << "FunJni  JNI_OnLoad start ";
+    LOG(INFO) << "FunJni  JNI_OnLoad start ";
     mVm = vm;
     JNIEnv *env = nullptr;
     if (vm->GetEnv((void **) &env, JNI_VERSION_1_6) == JNI_OK) {
@@ -81,7 +84,7 @@ JNI_OnLoad(JavaVM *vm, void *reserved) {
                                  sizeof(gMethods) / sizeof(gMethods[0]))<0) {
             return JNI_ERR;
         }
-        LOG(ERROR) << "FunJni JNI_OnLoad load sucess";
+        LOG(ERROR) << ">>>>>>>>>>>> FunJni JNI_OnLoad load success";
         return JNI_VERSION_1_6;
     }
     LOG(ERROR) << "FunJni  JNI_OnLoad load fail ";

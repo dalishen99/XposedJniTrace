@@ -1,12 +1,17 @@
 cmake_minimum_required(VERSION 3.4.1)
-enable_language(C ASM)
 project(XposedJniTrace)
+
+enable_language(C ASM)
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-narrowing -std=c++20")
 
+message(STATUS ">>>>>>>> funJni building ${PROJECT_SO_NAME} ")
+
 string(REGEX REPLACE "(.*)/app/src.*" "\\1" HomePath ${PROJECT_SOURCE_DIR})
 
-message(STATUS "funJni building ${PROJECT_SO_NAME}  home path -> ${HomePath} ")
+message(STATUS ">>>>>>>> home path -> ${HomePath} ")
+
+
 
 
 add_definitions(-DCORE_SO_NAME="lib${PROJECT_SO_NAME}.so")
@@ -31,6 +36,8 @@ include_directories(
 
 
 if (ZHENXI_BUILD_TYPE STREQUAL "RELEASE")
+    message(STATUS ">>>>>>>> start build release ！！！！ ")
+
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s")
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os")
@@ -56,6 +63,7 @@ add_library(
 
 target_link_libraries(
         ${PROJECT_SO_NAME}
+
         ${log-lib}
 )
 

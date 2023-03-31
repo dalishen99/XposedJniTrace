@@ -120,7 +120,7 @@ namespace ZhenxiRunTime::stringHandlerHook {
         }
         if (isSave) {
             if (hookStrHandlerOs != nullptr) {
-                (*hookStrHandlerOs) << msg.c_str();
+                (*hookStrHandlerOs) << "[" << match_so_name << "]" << msg.c_str();
             }
         }
         LOG(INFO) << "[" << match_so_name << "] " << msg;
@@ -508,9 +508,9 @@ void stringHandler::init() {
     HOOK_SYMBOL_DOBBY(handle, strxfrm)
     HOOK_SYMBOL_DOBBY(handle, strtok)
 
-    HOOK_SYMBOL_DOBBY(handle, memcpy);
-    HOOK_SYMBOL_DOBBY(handle, read);
-    HOOK_SYMBOL_DOBBY(handle, write);
+//    HOOK_SYMBOL_DOBBY(handle, memcpy)
+//    HOOK_SYMBOL_DOBBY(handle, read)
+//    HOOK_SYMBOL_DOBBY(handle, write)
 
 //    HOOK_SYMBOL_DOBBY(handle, sprintf);
 //    HOOK_SYMBOL_DOBBY(handle, printf);
@@ -535,7 +535,7 @@ void stringHandler::init() {
 
     dlclose(handle);
 
-    LOG(ERROR) << ">>>>>>>>> string handler init sucess !  ";
+    LOG(ERROR) << ">>>>>>>>> string handler init success !  ";
 }
 
 void stringHandler::hookStrHandler(bool hookAll,

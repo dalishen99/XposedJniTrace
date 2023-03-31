@@ -134,10 +134,10 @@ public class IntoMySoUtils {
      * )
      * 这个PathClassloader 不属于当前进程,所以会find不到当前模块的Class直接挂掉
      * （java.lang.ClassNotFoundException: Didn't find class "com.example.vmp.Hook.LHookConfig"
-     * on path: DexPathList[[zip file "/data/user/0/com.chinamworld.main/.cache/classes.jar",
-     * zip file "/data/app/com.chinamworld.main-1/base.apk"],
-     * nativeLibraryDirectories=[/data/app/com.chinamworld.main-1/lib/arm,
-     * /data/app/com.chinamworld.main-1/base.apk!/lib/armeabi-v7a, /system/lib, /vendor/lib]]）
+     * on path: DexPathList[[zip file "/data/user/0/com.xx.main/.cache/classes.jar",
+     * zip file "/data/app/com.xx.main-1/base.apk"],
+     * nativeLibraryDirectories=[/data/app/com.xx.main-1/lib/arm,
+     * /data/app/com.xx.main-1/base.apk!/lib/armeabi-v7a, /system/lib, /vendor/lib]]）
      * <p>
      * 情况3:
      * 直接传入当前模块的Classloader this.getclass.getClassloader
@@ -152,7 +152,7 @@ public class IntoMySoUtils {
                 String doLoad = (String) XposedHelpers.callMethod(Runtime.getRuntime(), "doLoad", path, object);
                 CLog.e(doLoad == null ? "" : doLoad);
             }
-            //CLogUtils.e("LoadSoForPahth  注入成功 "+path);
+            CLog.i("load so for path success "+path);
         } catch (Throwable e) {
             CLog.e("load so for path " + e.getMessage());
         }

@@ -8,7 +8,6 @@ stringfog {
     enable false
     //enable true
     implementation 'com.github.megatronking.stringfog.xor.StringFogImpl'
-    //只混淆zhenxi下的
     fogPackages = ['com.zhenxi']
     kg new RandomKeyGenerator()
     //kg new HardCodeKeyGenerator("Zhenxi233")
@@ -30,7 +29,7 @@ android {
         }
         externalNativeBuild {
             cmake {
-                cppFlags "-DPROJECT_SO_NAME="+String.valueOf(project_name)
+                arguments "-DPROJECT_SO_NAME="+String.valueOf(project_name)
             }
         }
         applicationVariants.all {
@@ -66,6 +65,7 @@ android {
             externalNativeBuild {
                 cmake {
                     arguments "-DZHENXI_BUILD_TYPE=DEBUG"
+                    //arguments  "-DPROJECT_SO_NAME="+"\"${project_name}\""
                 }
             }
         }
@@ -79,6 +79,7 @@ android {
             externalNativeBuild {
                 cmake {
                     arguments "-DZHENXI_BUILD_TYPE=RELEASE"
+                    //arguments  "-DPROJECT_SO_NAME="+"\"${project_name}\""
                 }
             }
         }
@@ -103,10 +104,10 @@ android {
             keyPassword 'jnitrace'
         }
     }
-    lintOptions {
-        checkReleaseBuilds false
-        abortOnError false
-    }
+//    lintOptions {
+//        checkReleaseBuilds false
+//        abortOnError false
+//    }
     //NDK R23 super C++20 min version
     ndkVersion '25.1.8937393'
 }

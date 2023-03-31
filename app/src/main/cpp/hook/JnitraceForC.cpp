@@ -52,8 +52,8 @@ namespace ZhenxiRunTime::JniTrace {
     dladdr((void *) __builtin_return_address(0), &info); \
 
 # define IS_MATCH \
-        if(isLister(info.dli_fname)){ \
-            { \
+        if(isLister(&info,info.dli_fname)){ \
+        { \
 
 
 
@@ -65,22 +65,45 @@ namespace ZhenxiRunTime::JniTrace {
     static string match_so_name = {};
     static std::mutex supernode_ids_mux_;
 
+
     __always_inline
-    static inline bool isLister(const char* name) {
-        //如果是hook all,我们则只需要处理排除的so
-        if(isHookAll) {
-            return !std::any_of(forbidSoList.begin(),
-                                forbidSoList.end(),
-                                [name](const std::string& forbid) {
-                return my_strstr(forbid.c_str(), name);
-            });
+    bool isAppFile(const char *path) {
+        if (my_strstr(path, "/data/") != nullptr) {
+            return true;
+        }
+        return false;
+    }
+    __always_inline
+    string getFileNameForPath(const char *path) {
+        std::string pathStr = path;
+        size_t pos = pathStr.rfind('/');
+        if (pos != std::string::npos) {
+            return pathStr.substr(pos + 1);
+        }
+        return pathStr;
+    }
+    __always_inline
+    static inline bool isLister(Dl_info *info, const char *name) {
+        if (isHookAll) {
+            if (!isAppFile(name)) {
+                return false;
+            }
+            for (const string &forbid: forbidSoList) {
+                if (my_strstr(name, forbid.c_str()) != nullptr) {
+                    //找到了则不进行处理
+                    return false;
+                }
+            }
+            match_so_name = getFileNameForPath(name);
+            return true;
         } else {
-            //处理我们需要监听的so
-            return std::any_of(filterSoList.begin(),
-                               filterSoList.end(),
-                               [name](const std::string& filter) {
-                return my_strstr(filter.c_str(), name);
-            });
+            for (const string &filter: filterSoList) {
+                if (my_strstr(name, filter.c_str()) != nullptr) {
+                    match_so_name = getFileNameForPath(name);
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
@@ -95,7 +118,7 @@ namespace ZhenxiRunTime::JniTrace {
         }
         if (isSave) {
             if (jnitraceOs != nullptr) {
-                (*jnitraceOs) << msg.c_str();
+                (*jnitraceOs) << "[" << match_so_name << "]" << msg.c_str();
             }
         }
         LOG(INFO) << "[" << match_so_name << "] " << msg.c_str();
@@ -114,7 +137,7 @@ namespace ZhenxiRunTime::JniTrace {
                 (*jnitraceOs) << msg.c_str();
             }
         }
-        if(isApart) {
+        if (isApart) {
             LOG(INFO) << msg.c_str();
         } else {
             LOG(INFO) << "[" << match_so_name << "] " << msg.c_str();
@@ -434,7 +457,8 @@ namespace ZhenxiRunTime::JniTrace {
         if (obj == nullptr) {
             return;
         }
-        const string temptag = "<<<<<------------------" + methodname + " start--------------------->>>>>";
+        const string temptag =
+                "<<<<<------------------" + methodname + " start--------------------->>>>>";
         write(temptag, true);
         getJObjectInfoInternal(env, obj, "invoke this object", true, nullptr);
     }
@@ -480,8 +504,7 @@ namespace ZhenxiRunTime::JniTrace {
                 argJstr = (jstring) (env->NewObject(strclazz, strInit, arg, utf));
                 env->DeleteLocalRef(utf);
                 env->DeleteLocalRef(strclazz);
-            }
-            else {
+            } else {
                 //其他的则调用Arrays.toString 处理
                 jclass ArrayClazz = env->FindClass("java/util/Arrays");
                 //这个需要用object类型
@@ -491,12 +514,11 @@ namespace ZhenxiRunTime::JniTrace {
                                                "([Ljava/lang/Object;)Ljava/lang/String;");
                 argJstr = (jstring) (env->CallStaticObjectMethod(ArrayClazz, methodid, arg));
             }
-            if(argJstr!= nullptr) {
+            if (argJstr != nullptr) {
                 //上面的逻辑主要是为了处理argJstr的赋值
                 ret = env->GetStringUTFChars(argJstr, nullptr);
             }
-        }
-        else {
+        } else {
             ret = getJObjectToString(env, obj);
         }
         if (ret != nullptr) {
@@ -625,7 +647,7 @@ namespace ZhenxiRunTime::JniTrace {
                 continue;
             } else if (strstr(classInfo, "[")) {
                 jobjectArray arg = va_arg(args, jobjectArray);
-                if(arg == nullptr) {
+                if (arg == nullptr) {
                     continue;
                 }
                 //数组类型参数
@@ -643,11 +665,12 @@ namespace ZhenxiRunTime::JniTrace {
                 } else {
                     jclass ArrayClazz = env->FindClass("java/util/Arrays");
                     jmethodID methodid =
-                            env->GetStaticMethodID(ArrayClazz,"toString","([Ljava/lang/Object;)Ljava/lang/String;");
+                            env->GetStaticMethodID(ArrayClazz, "toString",
+                                                   "([Ljava/lang/Object;)Ljava/lang/String;");
                     argJstr = (jstring) (env->CallStaticObjectMethod(ArrayClazz, methodid,
                                                                      arg));
                 }
-                if(argJstr == nullptr) {
+                if (argJstr == nullptr) {
                     continue;
                 }
                 //上面的逻辑主要是为了处理argJstr的赋值
@@ -723,7 +746,8 @@ namespace ZhenxiRunTime::JniTrace {
                     return nullptr;
                 }
                 const char *chars = orig_GetStringUTFChars(env, argstring, isCopy);
-                write(string("GetStringUTFChars : ").append(chars == nullptr ? "" : chars).append("\n"));
+                write(string("GetStringUTFChars : ").append(chars == nullptr ? "" : chars).append(
+                        "\n"));
                 return chars;
             }
         }
@@ -752,7 +776,8 @@ namespace ZhenxiRunTime::JniTrace {
         IS_MATCH
                 //当method id 错误时候可能null
                 jobject obj = orig_NewObjectV(env, clazz, jmethodId, args);
-                write(string("<<<<<------------------NewObjectV start  --------------------->>>>>"), true);
+                write(string("<<<<<------------------NewObjectV start  --------------------->>>>>"),
+                      true);
 
                 //打印构造方法参数信息
                 GET_METHOD_INFO_ARGS(env, obj, jmethodId, args, false)
@@ -1190,12 +1215,17 @@ void Jnitrace::init(JNIEnv *env) {
 }
 
 
-void Jnitrace::startjnitrace(JNIEnv *env ,
+void Jnitrace::startjnitrace(JNIEnv *env,
                              bool hookAll,
                              const std::list<string> &forbid_list,
                              const std::list<string> &filter_list,
                              std::ofstream *os) {
     isHookAll = hookAll;
+    LOGE("start jni trace is hook all %s", isHookAll ? "true" : "false");
+    for (const std::string &str: forbid_list) {
+        LOGE("start jni trace forbid_list %s", str.c_str());
+    }
+
     //copy orig list
     forbidSoList = std::list<string>(forbid_list);
     filterSoList = std::list<string>(filter_list);

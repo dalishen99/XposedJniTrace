@@ -154,6 +154,7 @@ void hook_libc_function(void *handle, const char *symbol, void *new_func, void *
         return;
     }
     if (!HookUtils::Hooker(addr, new_func, old_func)) {
-        LOGE(">>>>>>>>>>> io  hook %s fail !", symbol)
+        LOGE(">>>>>>>>>>> hook libc %s fail !", symbol)
     }
+    LOGI(">>>>>>>>>>> hook libc  hook %s success !",symbol)
 }

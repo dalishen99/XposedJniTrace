@@ -34,8 +34,10 @@ public class App extends Application {
         ThreadUtils.runOnNonUIThread(() -> {
             if (RootUtils.upgradeRootPermission(getPackageCodePath())) {
                 ToastUtils.showToast(getApplicationContext(), "获取root权限成功");
+                CLog.e("get root success !");
             } else {
                 ToastUtils.showToast(getApplicationContext(), "获取root失败,加壳程序可能导致读取配失败");
+                CLog.e("get root fail !");
             }
         });
     }
