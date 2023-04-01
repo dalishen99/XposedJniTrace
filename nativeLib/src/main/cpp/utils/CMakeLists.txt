@@ -13,8 +13,6 @@ include_directories(
         ./
         ${HomePath}/nativeLib/src/main/cpp/
         ${HomePath}/nativeLib/src/main/cpp/includes/
-        ${HomePath}/Dobby/include/
-        ${HomePath}/container-runtime/src/main/cpp/include/
 )
 
 
@@ -34,9 +32,6 @@ add_library(
         fileUtils.cpp
         stringUtils.cpp
         appUtils.cpp
-
-        ../../../../../app/src/main/cpp/hook/invokePrintf.cpp
-
 )
 
 target_link_libraries(

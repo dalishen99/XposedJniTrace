@@ -61,8 +61,8 @@ using namespace StringUtils;
     dladdr((void *) __builtin_return_address(0), &info); \
 
 # define IS_MATCH \
-        if(isLister(info.dli_fname)){ \
-            { \
+        if(isLister(&info,info.dli_fname)){ \
+        { \
 
 # define IS_NULL(value) \
     value == nullptr?"":value\
@@ -80,23 +80,46 @@ namespace ZhenxiRunTime::stringHandlerHook {
 
 
     __always_inline
-    static inline bool isLister(const char* name) {
-        //如果是hook all,我们则只需要处理排除的so
-        if(isHookAll) {
-            return !std::any_of(forbidSoList.begin(),
-                                forbidSoList.end(),
-                                [name](const std::string& forbid) {
-                                    return my_strstr(forbid.c_str(), name);
-                                });
+    static bool isAppFile(const char *path) {
+        if (my_strstr(path, "/data/") != nullptr) {
+            return true;
+        }
+        return false;
+    }
+    __always_inline
+    static string getFileNameForPath(const char *path) {
+        std::string pathStr = path;
+        size_t pos = pathStr.rfind('/');
+        if (pos != std::string::npos) {
+            return pathStr.substr(pos + 1);
+        }
+        return pathStr;
+    }
+    __always_inline
+    static inline bool isLister(Dl_info *info, const char *name) {
+        if (isHookAll) {
+            if (!isAppFile(name)) {
+                return false;
+            }
+            for (const string &forbid: forbidSoList) {
+                if (my_strstr(name, forbid.c_str()) != nullptr) {
+                    //找到了则不进行处理
+                    return false;
+                }
+            }
+            match_so_name = getFileNameForPath(name);
+            return true;
         } else {
-            //处理我们需要监听的so
-            return std::any_of(filterSoList.begin(),
-                               filterSoList.end(),
-                               [name](const std::string& filter) {
-                                   return my_strstr(filter.c_str(), name);
-                               });
+            for (const string &filter: filterSoList) {
+                if (my_strstr(name, filter.c_str()) != nullptr) {
+                    match_so_name = getFileNameForPath(name);
+                    return true;
+                }
+            }
+            return false;
         }
     }
+
 
 
     bool getpData(char temp[],const void *p, size_t size) {
@@ -111,19 +134,18 @@ namespace ZhenxiRunTime::stringHandlerHook {
 
     static void write(const std::string &msg) {
         //写入方法加锁,防止多进程导致问题
-        std::unique_lock<std::mutex> mock(supernode_ids_mux_);
-        if (msg.c_str() == nullptr) {
+        //std::unique_lock<std::mutex> mock(supernode_ids_mux_);
+        if (msg.c_str() == nullptr||msg.empty()) {
             return;
         }
-        if (msg.length() == 0) {
-            return;
-        }
+        auto &info = string("[").append(
+                match_so_name).append("]").append(msg);
         if (isSave) {
             if (hookStrHandlerOs != nullptr) {
-                (*hookStrHandlerOs) << "[" << match_so_name << "]" << msg.c_str();
+                (*hookStrHandlerOs) << info;
             }
         }
-        LOG(INFO) << "[" << match_so_name << "] " << msg;
+        LOG(INFO) << info;
     }
 
 

@@ -31,6 +31,15 @@ HOOK_DEF(void*, invoke, void *thiz, void *self, uint32_t *args, uint32_t args_si
     return orig_invoke(thiz, self, args, args_size, result, shorty);
 }
 
+__always_inline
+static string getFileNameForPath(const char *path) {
+    std::string pathStr = path;
+    size_t pos = pathStr.rfind('/');
+    if (pos != std::string::npos) {
+        return pathStr.substr(pos + 1);
+    }
+    return pathStr;
+}
 
 void invokePrintf::HookJNIInvoke(JNIEnv *env,
                                  std::ofstream *os,
@@ -60,8 +69,15 @@ HOOK_DEF(void*, RegisterNative, void *thiz, void *native_method) {
     if (isSave) {
         *invokeOs << basicString.append("\n");
     }
-    LOG(ERROR) << ">>>>>>>>>>>>>> native register " <<
-               basicString.c_str() << "  " << native_method;
+    Dl_info info;
+    dladdr(native_method, &info);
+    size_t relative_offset =
+            reinterpret_cast<size_t>(native_method) - reinterpret_cast<size_t>(info.dli_fbase);
+
+    LOG(INFO) <<"REGISTER_NATIVE " << basicString.c_str() << " absolute address(内存地址) -> "
+                        << native_method << "  relative offset(相对地址) "<<(void*)relative_offset
+                        <<"所属ELF文件 ["<<getFileNameForPath(info.dli_fname)+"]";
+
     return orig_RegisterNative(thiz, native_method);
 }
 

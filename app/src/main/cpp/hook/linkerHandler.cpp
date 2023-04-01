@@ -55,14 +55,14 @@ namespace ZhenxiRunTime::linkerHandler {
     void onSoLoadedAfter(const char *filename,void *ret){
         auto mapInfo = getSoBaseAddress(filename);
         char buffer[PATH_MAX];
-        sprintf(buffer, "linker load %s\n  start-> 0x%zx  end-> 0x%zx  size -> %lu",
+        sprintf(buffer, "linker load %s  start-> 0x%zx  end-> 0x%zx  size -> %lu",
                 filename, mapInfo.start, mapInfo.end, (mapInfo.end - mapInfo.start));
         if (isSave) {
             if (hookStrHandlerOs != nullptr) {
                 (*hookStrHandlerOs) << buffer;
             }
         }
-        LOGE("%s ", buffer);
+        LOGI("%s ", buffer);
     }
     HOOK_DEF(void *, dlopen_CI, const char *filename, int flag) {
         char temp[PATH_MAX];

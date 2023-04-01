@@ -39,4 +39,10 @@ public class ConfigKey {
      */
     public static final String FILTER_LIST="FILTER_LIST";
 
+    /**
+     * 开启的功能列表
+     */
+    public static final String LIST_OF_FUNCTIONS="LIST_OF_FUNCTIONS";
+
+
 }

@@ -23,6 +23,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.snackbar.Snackbar;
 import com.zhenxi.jnitrace.bean.AppBean;
 import com.zhenxi.jnitrace.adapter.MainListViewAdapter;
+import com.zhenxi.jnitrace.utils.CLog;
 import com.zhenxi.jnitrace.utils.PermissionUtils;
 import com.zhenxi.jnitrace.utils.ToastUtils;
 import com.zhenxi.jnitrace.view.Xiaomiquan;
@@ -94,7 +95,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void initData() {
         mAllPackageList = getPackageList();
-        //CLogUtils.e("发现 "+mAllPackageList.size()+" App");
     }
 
     private void initView() {

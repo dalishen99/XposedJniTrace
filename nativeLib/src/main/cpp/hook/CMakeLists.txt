@@ -5,12 +5,12 @@ enable_language(C ASM)
 #sandhook sign hook
 add_subdirectory(signhook)
 
-message(STATUS "dobby lib path ->  ${DOBBY_LIB_PATH} ")
-message(STATUS "dobby lib path ->  ${DOBBY_LIB_PATH} ")
-message(STATUS "dobby lib path ->  ${DOBBY_LIB_PATH} ")
-message(STATUS "dobby lib path ->  ${DOBBY_LIB_PATH} ")
-message(STATUS "dobby lib path ->  ${DOBBY_LIB_PATH} ")
-message(STATUS "dobby lib path ->  ${DOBBY_LIB_PATH} ")
+#message(STATUS "dobby lib path ->  ${DOBBY_LIB_PATH} ")
+#message(STATUS "dobby lib path ->  ${DOBBY_LIB_PATH} ")
+#message(STATUS "dobby lib path ->  ${DOBBY_LIB_PATH} ")
+#message(STATUS "dobby lib path ->  ${DOBBY_LIB_PATH} ")
+#message(STATUS "dobby lib path ->  ${DOBBY_LIB_PATH} ")
+#message(STATUS "dobby lib path ->  ${DOBBY_LIB_PATH} ")
 
 #设置路径,引入Dobby
 include_directories(

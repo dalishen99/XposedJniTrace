@@ -37,7 +37,7 @@ namespace ZhenxiRunTime::JniTrace {
   ret new_##func(__VA_ARGS__)
 
 #define JNI_HOOK_DEF(ret, func, ...)    \
-  ret (*orig_##func)(JNIEnv *env, jobject obj, jmethodID jmethodId,...);  \
+  ret (*orig_##func)(JNIEnv *env, jobject obj, jmethodID jmethodId,...) = nullptr;  \
   ret new_##func(__VA_ARGS__) {         \
   //if(orig_##func == nullptr){LOG(INFO) <<"jnitrace hook error ,org sym == null "<<#func;}  \
   //LOG(INFO) << #func<<"("#__VA_ARGS__")" ;\
@@ -67,14 +67,15 @@ namespace ZhenxiRunTime::JniTrace {
 
 
     __always_inline
-    bool isAppFile(const char *path) {
+    static bool isAppFile(const char *path) {
         if (my_strstr(path, "/data/") != nullptr) {
             return true;
         }
         return false;
     }
+
     __always_inline
-    string getFileNameForPath(const char *path) {
+    static string getFileNameForPath(const char *path) {
         std::string pathStr = path;
         size_t pos = pathStr.rfind('/');
         if (pos != std::string::npos) {
@@ -82,6 +83,7 @@ namespace ZhenxiRunTime::JniTrace {
         }
         return pathStr;
     }
+
     __always_inline
     static inline bool isLister(Dl_info *info, const char *name) {
         if (isHookAll) {
@@ -109,11 +111,8 @@ namespace ZhenxiRunTime::JniTrace {
 
     static void write(const std::string &msg) {
         //写入方法加锁,防止多进程导致问题
-        std::unique_lock<std::mutex> mock(supernode_ids_mux_);
-        if (msg.c_str() == nullptr) {
-            return;
-        }
-        if (msg.length() == 0) {
+        //std::unique_lock<std::mutex> mock(supernode_ids_mux_);
+        if (msg.c_str() == nullptr||msg.empty()) {
             return;
         }
         if (isSave) {
@@ -128,8 +127,8 @@ namespace ZhenxiRunTime::JniTrace {
      * 第二个参数标识当前是否是分隔符
      */
     static inline void write(const std::string &msg, [[maybe_unused]] bool isApart) {
-        std::unique_lock<std::mutex> mock(supernode_ids_mux_);
-        if (msg.c_str() == nullptr) {
+        //std::unique_lock<std::mutex> mock(supernode_ids_mux_);
+        if (msg.c_str() == nullptr||msg.empty()) {
             return;
         }
         if (isSave) {
@@ -463,7 +462,6 @@ namespace ZhenxiRunTime::JniTrace {
         getJObjectInfoInternal(env, obj, "invoke this object", true, nullptr);
     }
 
-
     /**
      * 打印一个obj类型的信息
      *
@@ -490,13 +488,68 @@ namespace ZhenxiRunTime::JniTrace {
             return;
         }
         const char *ret = nullptr;
-        //数组类型需要特殊处理,非数组直接打印
-        if (strstr(classInfo, "[")) {
+        //需要先排除基础类型
+        if (my_strcmp(classInfo, "boolean") == 0 ||
+                my_strcmp(classInfo, "java.lang.Boolean") == 0) {
+            jclass clazz = env->FindClass("java/lang/Boolean");
+            jmethodID id = env->GetStaticMethodID(clazz, "toString", "(Z)Ljava/lang/String;");
+            auto jStr = (jstring)env->CallStaticObjectMethod(clazz, id, obj);
+            ret = env->GetStringUTFChars(jStr, nullptr);
+        } else if (my_strcmp(classInfo, "byte") == 0 ||
+                my_strcmp(classInfo, "java.lang.Byte") == 0) {
+            jclass clazz = env->FindClass("java/lang/Byte");
+            jmethodID id = env->GetStaticMethodID(clazz, "toString", "(B)Ljava/lang/String;");
+            auto jStr = (jstring)env->CallStaticObjectMethod(clazz, id, obj);
+            ret = env->GetStringUTFChars(jStr, nullptr);
+        } else if (my_strcmp(classInfo, "char") == 0 ||
+                my_strcmp(classInfo, "java.lang.Character") == 0) {
+            jclass clazz = env->FindClass("java/lang/Character");
+            jmethodID id = env->GetStaticMethodID(clazz, "toString", "(C)Ljava/lang/String;");
+            auto jStr = (jstring)env->CallStaticObjectMethod(clazz, id, obj);
+            ret = env->GetStringUTFChars(jStr, nullptr);
+
+        } else if (my_strcmp(classInfo, "short") == 0 ||
+                my_strcmp(classInfo, "java.lang.Short") == 0) {
+            jclass clazz = env->FindClass("java/lang/Short");
+            jmethodID id = env->GetStaticMethodID(clazz, "toString", "(S)Ljava/lang/String;");
+            auto jStr = (jstring)env->CallStaticObjectMethod(clazz, id, obj);
+            ret = env->GetStringUTFChars(jStr, nullptr);
+
+        } else if (my_strcmp(classInfo, "int") == 0 ||
+                my_strcmp(classInfo, "java.lang.Integer") == 0) {
+            jclass clazz = env->FindClass("java/lang/Integer");
+            jmethodID id = env->GetStaticMethodID(clazz, "toString", "(I)Ljava/lang/String;");
+            auto jStr = (jstring)env->CallStaticObjectMethod(clazz, id, obj);
+            ret = env->GetStringUTFChars(jStr, nullptr);
+
+        } else if (my_strcmp(classInfo, "float") == 0 ||
+                my_strcmp(classInfo, "java.lang.Float") == 0) {
+            jclass clazz = env->FindClass("java/lang/Float");
+            jmethodID id = env->GetStaticMethodID(clazz, "toString", "(F)Ljava/lang/String;");
+            auto jStr = (jstring)env->CallStaticObjectMethod(clazz, id, obj);
+            ret = env->GetStringUTFChars(jStr, nullptr);
+
+        } else if (my_strcmp(classInfo, "double") == 0 ||
+                my_strcmp(classInfo, "java.lang.Double") == 0) {
+            jclass clazz = env->FindClass("java/lang/Double");
+            jmethodID id = env->GetStaticMethodID(clazz, "toString", "(D)Ljava/lang/String;");
+            auto jStr = (jstring)env->CallStaticObjectMethod(clazz, id, obj);
+            ret = env->GetStringUTFChars(jStr, nullptr);
+
+        } else if (my_strcmp(classInfo, "long") == 0 ||
+                my_strcmp(classInfo, "java.lang.Long") == 0) {
+            jclass clazz = env->FindClass("java/lang/Long");
+            jmethodID id = env->GetStaticMethodID(clazz, "toString", "(J)Ljava/lang/String;");
+            auto jStr = (jstring)env->CallStaticObjectMethod(clazz, id, obj);
+            ret = env->GetStringUTFChars(jStr, nullptr);
+        }
+        else if (my_strstr(classInfo, "[")) {
+            //数组类型需要特殊处理,非数组直接打印
             auto arg = (jobjectArray) obj;
             //数组类型参数
             jstring argJstr;
             //byte数组 特殊处理
-            if (strcmp(classInfo, "[B") == 0) {
+            if (my_strcmp(classInfo, "[B") == 0) {
                 jclass strclazz = env->FindClass("java/lang/String");
                 jstring utf = env->NewStringUTF("UTF-8");
                 jmethodID strInit = env->GetMethodID(strclazz, "<init>",
@@ -518,10 +571,15 @@ namespace ZhenxiRunTime::JniTrace {
                 //上面的逻辑主要是为了处理argJstr的赋值
                 ret = env->GetStringUTFChars(argJstr, nullptr);
             }
-        } else {
+        }
+        else {
+            //其他任何类型直接toString
             ret = getJObjectToString(env, obj);
         }
-        if (ret != nullptr) {
+        if (env->ExceptionCheck()) {
+            env->ExceptionClear();
+        }
+        if (ret != nullptr && strlen(ret) > 0) {
             if (isPrintClassinfo) {
                 string basicString = message.append("  ").append(classInfo).append("  ").append(
                         ret).append("\n");
@@ -544,6 +602,7 @@ namespace ZhenxiRunTime::JniTrace {
         if (jmethodId == nullptr) {
             return;
         }
+
         jclass pJclass = env->GetObjectClass(obj);
 
         //获取被调用的方法信息
@@ -571,9 +630,6 @@ namespace ZhenxiRunTime::JniTrace {
 
         auto objectArray = (jobjectArray) (env->CallObjectMethod(invokeMethod,
                                                                  method_id_getTypes));
-
-
-        //分别判断每个参数的类型
         for (int i = 0; i < size; i++) {
             auto argobj = env->GetObjectArrayElement(objectArray, i);
             if (argobj == nullptr) {
@@ -581,109 +637,10 @@ namespace ZhenxiRunTime::JniTrace {
             }
             char argsInfo[20];
             sprintf(argsInfo, "args %d ", i);
-
             //具体每个类型的class
             char *classInfo = getJObjectClassInfo(env, argobj);
-
-            if (strcmp(classInfo, "boolean") == 0 ||
-                strcmp(classInfo, "java.lang.Boolean") == 0) {
-                jboolean arg = va_arg(args, jboolean);
-                //LOGI("%s -> Boolean %hhu ", argsInfo, arg)
-                //os<<argsInfo<<" Boolean "<< arg<<"\n";
-                write(string(argsInfo).append(" Boolean : ").append(
-                        (arg == JNI_TRUE ? "true" : "false")).append("\n"));
-                continue;
-            } else if (strcmp(classInfo, "byte") == 0 ||
-                       strcmp(classInfo, "java.lang.Byte") == 0) {
-                jbyte arg = va_arg(args, jbyte);
-                //LOGI("%s ->Byte %hhd ", argsInfo, arg)
-                //os<<argsInfo<<" Byte "<< arg<<"\n";
-                write(string(argsInfo).append(" Byte : ").append(to_string(arg)).append("\n"));
-                continue;
-            } else if (strcmp(classInfo, "char") == 0 ||
-                       strcmp(classInfo, "java.lang.Character") == 0) {
-                jchar arg = va_arg(args, jchar);
-                //LOGI("%s ->char %hu ", argsInfo, arg)
-                //os<<argsInfo<<" Character "<< arg<<"\n";
-                write(string(argsInfo).append(" char : ").append(to_string(arg)).append("\n"));
-                continue;
-            } else if (strcmp(classInfo, "short") == 0 ||
-                       strcmp(classInfo, "java.lang.Short") == 0) {
-                jshort arg = va_arg(args, jshort);
-                //LOGI("%s ->Short %d ", argsInfo, arg)
-                // os<<argsInfo<<" Short "<< arg<<"\n";
-                write(string(argsInfo).append(" Short : ").append(to_string(arg)).append("\n"));
-                continue;
-            } else if (strcmp(classInfo, "int") == 0 ||
-                       strcmp(classInfo, "java.lang.Integer") == 0) {
-                jint arg = va_arg(args, jint);
-                //LOGI("%s ->Integer %d ", argsInfo, arg)
-                // os<<argsInfo<<" Integer "<< arg<<"\n";
-                write(string(argsInfo).append(" Integer : ").append(to_string(arg)).append(
-                        "\n"));
-                continue;
-            } else if (strcmp(classInfo, "float") == 0 ||
-                       strcmp(classInfo, "java.lang.Float") == 0) {
-                jfloat arg = va_arg(args, jfloat);
-                //LOGI("%s ->Float %f ", argsInfo, arg)
-                //os<<argsInfo<<" Float "<< arg<<"\n";
-                write(string(argsInfo).append(" Float : ").append(to_string(arg)).append("\n"));
-                continue;
-            } else if (strcmp(classInfo, "double") == 0 ||
-                       strcmp(classInfo, "java.lang.Double") == 0) {
-                jdouble arg = va_arg(args, jdouble);
-                //LOGI("%s ->Double %f ", argsInfo, arg)
-                //os<<argsInfo<<" Double "<< arg<<"\n";
-                write(string(argsInfo).append(" Double : ").append(to_string(arg)).append(
-                        "\n"));
-
-                continue;
-            } else if (strcmp(classInfo, "long") == 0 ||
-                       strcmp(classInfo, "java.lang.Long") == 0) {
-                jlong arg = va_arg(args, jlong);
-                //LOGI("%s ->Long %ld ", argsInfo, arg)
-                //os<<argsInfo<<" Long "<< arg<<"\n";
-                write(string(argsInfo).append(" Long : ").append(to_string(arg)).append("\n"));
-                continue;
-            } else if (strstr(classInfo, "[")) {
-                jobjectArray arg = va_arg(args, jobjectArray);
-                if (arg == nullptr) {
-                    continue;
-                }
-                //数组类型参数
-                jstring argJstr;
-                //byte数组 特殊处理
-                if (strcmp(classInfo, "[B") == 0) {
-                    jclass strclazz = env->FindClass("java/lang/String");
-                    jstring utf = env->NewStringUTF("UTF-8");
-                    jmethodID strInit = env->GetMethodID(strclazz, "<init>",
-                                                         "([BLjava/lang/String;)V");
-                    argJstr = (jstring) (env->NewObject(strclazz, strInit, arg, utf));
-                    env->DeleteLocalRef(utf);
-                    env->DeleteLocalRef(strclazz);
-
-                } else {
-                    jclass ArrayClazz = env->FindClass("java/util/Arrays");
-                    jmethodID methodid =
-                            env->GetStaticMethodID(ArrayClazz, "toString",
-                                                   "([Ljava/lang/Object;)Ljava/lang/String;");
-                    argJstr = (jstring) (env->CallStaticObjectMethod(ArrayClazz, methodid,
-                                                                     arg));
-                }
-                if (argJstr == nullptr) {
-                    continue;
-                }
-                //上面的逻辑主要是为了处理argJstr的赋值
-                const char *ret = env->GetStringUTFChars(argJstr, nullptr);
-                if (ret != nullptr) {
-                    write(string(argsInfo).append(" class info ->  ")
-                                  .append(classInfo).append(" ").append((ret)).append("\n"));
-                }
-                continue;
-            } else {
-                jobject arg = va_arg(args, jobject);
-                getJObjectInfoInternal(env, arg, argsInfo, true, classInfo);
-            }
+            jobject arg = va_arg(args, jobject);
+            getJObjectInfoInternal(env, arg, argsInfo, true, classInfo);
         }
         //end
         va_end(args);
@@ -746,8 +703,10 @@ namespace ZhenxiRunTime::JniTrace {
                     return nullptr;
                 }
                 const char *chars = orig_GetStringUTFChars(env, argstring, isCopy);
-                write(string("GetStringUTFChars : ").append(chars == nullptr ? "" : chars).append(
-                        "\n"));
+                if(chars == nullptr || strlen(chars)==0) {
+                    return chars;
+                }
+                write(string("GetStringUTFChars : ").append(chars).append("\n"));
                 return chars;
             }
         }

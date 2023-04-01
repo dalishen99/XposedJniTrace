@@ -1,6 +1,7 @@
 package com.zhenxi.jnitrace.adapter;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.pm.PackageInfo;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,6 +35,7 @@ import static com.zhenxi.jnitrace.config.ConfigKey.CONFIG_JSON;
 import static com.zhenxi.jnitrace.config.ConfigKey.FILTER_LIST;
 import static com.zhenxi.jnitrace.config.ConfigKey.IS_LISTEN_TO_ALL;
 import static com.zhenxi.jnitrace.config.ConfigKey.IS_SERIALIZATION;
+import static com.zhenxi.jnitrace.config.ConfigKey.LIST_OF_FUNCTIONS;
 import static com.zhenxi.jnitrace.config.ConfigKey.MOUDLE_SO_PATH;
 import static com.zhenxi.jnitrace.config.ConfigKey.PACKAGE_NAME;
 import static com.zhenxi.jnitrace.config.ConfigKey.SAVE_TIME;
@@ -54,8 +56,6 @@ public class MainListViewAdapter extends BaseAdapter {
 
     private final Context mContext;
     private final CheckBox isSerialization;
-
-
 
 
     private AppBean mAppBean = null;
@@ -111,6 +111,13 @@ public class MainListViewAdapter extends BaseAdapter {
         return convertView;
     }
 
+    private static final String[] items = {
+            "JniTrace(JniEnv交互监听)",
+            "libcString处理函数监听",
+            "RegisterNative监听",
+            "Linker加载SO监听",
+            "监听全部Java方法调用(慎选,很容易造成程序卡顿)"
+    };
 
     /**
      * 弹出对话框收集用户需要采集的So调用信息
@@ -118,6 +125,9 @@ public class MainListViewAdapter extends BaseAdapter {
     private void showDialogForList(Context context) {
         View view = LayoutInflater.from(mContext).inflate(R.layout.dialog_input, null);
         EditText input = view.findViewById(R.id.ed_input);
+        JSONObject jsonObject = new JSONObject();
+        ArrayList<String> filtersList = new ArrayList<>();
+        ArrayList<String> functionsList = new ArrayList<>();
         new AlertDialog.Builder(context)
                 .setView(view)
                 .setPositiveButton("确定", (dialog, which) -> {
@@ -126,9 +136,6 @@ public class MainListViewAdapter extends BaseAdapter {
                         ToastUtils.showToast(context, "输入错误,未找到需要需要监听的SO信息");
                         return;
                     }
-
-                    ArrayList<String> filtersList = new ArrayList<>();
-                    JSONObject jsonObject = new JSONObject();
                     try {
                         if (inputStr.equals("ALL")) {
                             jsonObject.put(IS_LISTEN_TO_ALL, true);
@@ -143,17 +150,28 @@ public class MainListViewAdapter extends BaseAdapter {
                                 jsonObject.put(FILTER_LIST, listJsonStr);
                             }
                         }
+                        String functionsStr = GsonUtils.obj2str(functionsList);
+                        CLog.e("functions list json -> " + functionsStr);
+                        jsonObject.put(LIST_OF_FUNCTIONS, functionsStr);
                     } catch (Throwable e) {
                         CLog.e("put filter list error " + e);
                     }
                     //保存数据
-                    saveConfig(mAppBean,jsonObject);
+                    saveConfig(mAppBean, jsonObject);
                     // 点击了确认按钮
                     dialog.dismiss();
                 })
                 .setNegativeButton("取消", (dialog, which) -> {
                     // 点击了取消按钮
                     dialog.dismiss();
+                })
+                .setMultiChoiceItems(items, null, (dialog, which, isChecked) -> {
+                    if (isChecked) {
+                        functionsList.add(which+"");
+                    } else {
+                        functionsList.remove(which+"");
+                    }
+                    CLog.e("functions list " + functionsList);
                 })
                 .create()
                 .show();
@@ -169,10 +187,11 @@ public class MainListViewAdapter extends BaseAdapter {
             showDialogForList(mContext);
             return;
         }
-        saveConfig(bean,null);
+        saveConfig(bean, null);
     }
-    private void saveConfig(AppBean bean,JSONObject jsonObject){
-        if(jsonObject == null) {
+
+    private void saveConfig(AppBean bean, JSONObject jsonObject) {
+        if (jsonObject == null) {
             jsonObject = new JSONObject();
         }
         try {
@@ -192,6 +211,7 @@ public class MainListViewAdapter extends BaseAdapter {
         }
         saveConfigForLocation(bean, jsonObject);
     }
+
     private void saveConfigForLocation(AppBean bean, JSONObject jsonObject) {
         SpUtil.putString(mContext, CONFIG_JSON, jsonObject.toString());
         initConfig(bean.packageName, jsonObject);
@@ -210,8 +230,11 @@ public class MainListViewAdapter extends BaseAdapter {
     private void initConfig(String packageName, JSONObject jsonObject) {
         try {
 
-            File config = new File( "/data/data/"
-                    + packageName+ "/" + BuildConfig.project_name + "Config");
+            File config = new File("/data/data/"
+                    + BuildConfig.APPLICATION_ID + "/" + BuildConfig.project_name + "Config");
+            config.setExecutable(true, false);
+            config.setReadable(true, false);
+            config.setWritable(true, false);
             CLog.e("temp config file path " + config.getPath());
             if (config.exists()) {
                 boolean delete = config.delete();
@@ -219,16 +242,27 @@ public class MainListViewAdapter extends BaseAdapter {
                     CLog.e("delete org config file error");
                 }
             }
-            File temp = new File("/data/data/" + packageName);
-            boolean newFile = config.createNewFile();
-            if (!newFile) {
-                CLog.e("create config file error " + config.getPath());
-            }
+            CLog.e("start save config file " + config.getPath());
             FileUtils.saveString(config, jsonObject.toString());
-            RootUtils.execShell("mv " + config.getPath() + " " + temp);
-            CLog.e("config mv success !");
+
+            File temp = new File("/data/data/" + packageName);
+            File tagFile = new File(temp.getPath() + "/" + BuildConfig.project_name + "Config");
+            if(tagFile.exists()){
+                RootUtils.execShell("rm -f " + tagFile.getPath());
+                CLog.i(">>>>>>>> initConfig rm -f finish  "+tagFile.getPath());
+            }
+            CLog.i(">>>>>>>>> start mv " +
+                    "file " + config.getPath() + "->" + temp);
+            //强制覆盖
+            RootUtils.execShell("mv -f " + config.getPath() + " " + temp);
+            //防止因为用户组权限问题导致open failed: EACCES (Permission denied)
+            CLog.i(">>>>>>>>>> chmod 777 path -> " + tagFile);
+            RootUtils.execShell("chmod 777  " + tagFile.getPath());
+            //尝试利用magisk本身的busybox命令,直接chmod有的手机会失败
+            RootUtils.execShell("busybox chmod 777  " + tagFile.getPath());
+            CLog.i(">>>>>>>> initConfig finish  ");
         } catch (Throwable e) {
-            e.printStackTrace();
+            CLog.e("initConfig error  " + e, e);
         }
     }
 

@@ -1,18 +1,11 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    android:layout_marginTop="20dp"
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content">
 
-    <TextView
-        android:text="请输入需要监听被HookApk的SO关键字,若要监听多个用|分割,如果需要监听全部JNI调用输入:ALL
-        \n保存的文件在/data/data/包名目录下。"
-        android:layout_width="match_parent"
-        android:layout_height="64dp"
-        android:scaleType="center"
-        android:textColor="#fff"
-        android:background="#1baaf2"
-        android:contentDescription="@string/app_name"
-        />
+
 
     <EditText
         android:id="@+id/ed_input"
@@ -24,7 +17,17 @@
         android:layout_marginRight="4dp"
         android:layout_marginBottom="16dp"
         android:fontFamily="sans-serif"
-        android:hint="AAAlib.so|BBBlib.so|... 或者ALL(大写)"/>
+        android:hint="AAAlib.so|BBBlib.so|..."/>
+
+    <TextView
+        android:text=
+            "选选择需要开启的功能,然后输入需要被监听SO关键字,若要监听多个用|分割。\n 如果需要监听全部JNI调用输入:ALL\n不推荐使用ALL的方式进行监听,最好的选择1-5和核心SO文件进行监听。\n保存的文件在/data/data/包名目录下。"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scaleType="center"
+        android:textColor="#fff"
+        android:background="#1baaf2"
+        />
 
 </LinearLayout>
 
