@@ -272,7 +272,7 @@ public class LHook implements IXposedHookLoadPackage, IXposedHookZygoteInit {
                     }
                 }
                 FileUtils.saveStringClose();
-            }, 5 * 1000);
+            }, 30 * 1000);
         } catch (Throwable e) {
             CLog.e("startSerialization error " + e);
         }
