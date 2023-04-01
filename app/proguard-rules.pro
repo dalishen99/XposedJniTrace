@@ -1,14 +1,10 @@
-
--repackageclasses "Zhenxi233"
--allowaccessmodification
+-optimizationpasses 5
 
 -keep  public class com.zhenxi.jnitrace.LHook
 
 -keep  public class com.zhenxi.jnitrace.MainActivity
 
--dontshrink
 
--dontobfuscate
 
 
 

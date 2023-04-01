@@ -49,7 +49,10 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-
+    afterEvaluate {
+        // release task clean
+        assembleRelease.dependsOn(clean)
+    }
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
@@ -86,11 +89,11 @@ android {
         }
     }
 
-//    sourceSets{
-//        main{
-//            jniLibs.srcDirs = ['src/main/jniLibs']
-//        }
-//    }
+    sourceSets{
+        main{
+            jniLibs.srcDirs = ['src/main/jniLibs']
+        }
+    }
     signingConfigs {
         debug {
             storeFile file("jnitraceKey.jks")
