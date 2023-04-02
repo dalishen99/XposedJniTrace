@@ -35,18 +35,18 @@ include_directories(
 )
 
 
-if (ZHENXI_BUILD_TYPE STREQUAL "RELEASE")
-    message(STATUS ">>>>>>>> start build release ！！！！ ")
-
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffunction-sections -fdata-sections")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fomit-frame-pointer")
-
-    add_definitions(-DZHENXI_BUILD_TYPE_NOLOG)
-    add_definitions(-DZHENXI_BUILD_TYPE_RELEASE)
-endif ()
+#if (ZHENXI_BUILD_TYPE STREQUAL "RELEASE")
+#    message(STATUS ">>>>>>>> start build release ！！！！ ")
+#
+#    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
+#    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s")
+#    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os")
+#    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffunction-sections -fdata-sections")
+#    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fomit-frame-pointer")
+#
+#    add_definitions(-DZHENXI_BUILD_TYPE_NOLOG)
+#    add_definitions(-DZHENXI_BUILD_TYPE_RELEASE)
+#endif ()
 
 
 aux_source_directory(hook hook_src_list)
